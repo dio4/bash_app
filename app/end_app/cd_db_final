@@ -86,7 +86,7 @@ add_record_tracks() {
   done
 }
 
-# The add_records function allows entry of the main CD information for a new CD.
+# add_records function получает информацию для нового CD из базового.
 
 add_records() {
   # Prompt for the initial information
@@ -210,7 +210,7 @@ update_cd() {
   return
 }
 
-# count_cds gives us a quick count of the contents of our database.
+# count_cds счетчик rоyтента нашей плоской базы
 
 count_cds() {
   set $(wc -l $title_file)
