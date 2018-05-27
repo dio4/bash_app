@@ -1,0 +1,69 @@
+# пример сеанса работы с программой.
+$ ./cd_db_final
+
+Менеджер коллекции дисков
+
+Выберете нужные действия: 
+cdcatnum = , cdtitle=, asklist=
+   a) Добавить новый диск
+   f) Найти диск
+   c) Подсчитать диски и дорожки в каталоге
+   q) выход
+
+введите нужную букву и нажмите Enter f
+Введите строку для поиска диска или нажмите q! Или возврат в меню! mYdisk
+ linesfound= 0, cdcatnum= 
+Извините, ничего не найдено. Попробуйте снова
+Нажмите Enter 
+
+
+Выберете нужные действия: 
+cdcatnum = , cdtitle=, asklist=y
+   a) Добавить новый диск
+   f) Найти диск
+   c) Подсчитать диски и дорожки в каталоге
+   q) выход
+
+введите нужную букву и нажмите Enter f
+Введите строку для поиска диска или нажмите q! Или возврат в меню! Genesis1
+ linesfound= 1, cdcatnum= 
+
+Catalog number: Genesis1
+Title: Selling England by the Pound
+Type: Rock
+Artist/Composer: Genesis
+
+Нажмите Enter 
+Хотите просмотреть треки для этого диска? y
+
+
+Selling England by the Pound :-
+
+1,Dancing With The Moonlit Knight
+2,I Know What I Like
+3,Firth Of Fifth
+4,More Fool Me
+5,The Battle Of Epping Forest
+6,After The Ordeal
+7,The Cinema Show
+8,Aisle Of Plenty
+
+Нажмите Enter 
+
+Возврат в основное меню.
+
+Выберете нужные действия: 
+cdcatnum = Genesis1, cdtitle=Selling England by the Pound, asklist=y
+   a) Добавить новый диск
+   f) Найти диск
+   c) Подсчитать диски и дорожки в каталоге
+   l) распечатать дорожки Selling England by the Pound
+   r) удалить Selling England by the Pound
+   u) изменить названия треков для Selling England by the Pound
+   q) выход
+
+введите нужную букву и нажмите Enter 
+
+
+
+

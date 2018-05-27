@@ -1,0 +1,312 @@
+#!/bin/bash
+menu_choice=""
+current_cd=""
+title_file="title.cdb"
+tracks_file="tracks.cdb"
+temp_file=/tmp/cdb.$$
+trap 'rm -f $temp_file' EXIT
+
+get_return() {
+  echo -e "Нажмите Enter \c"
+  read x
+  return 0
+}
+
+get_confirm() {
+  echo -e "Вы уверены? Если да, жмите yes , нет - no. После всего Enter  \c"
+  while true
+  do
+    read x
+    case "$x" in
+      y | yes | Y | Yes | YES )
+        return 0;;
+      n | no  | N | No  | NO )
+        echo
+        echo "Выполнение прекращено!"
+        return 1;;
+      *) echo "Введите yes или no" ;;
+    esac
+  done
+}
+
+set_menu_choice() {
+  clear
+  echo "Выберете нужные действия: "
+  echo "cdcatnum = $cdcatnum, cdtitle=$cdtitle, asklist=$asklist"
+  echo "   a) Добавить новый диск"
+  echo "   f) Найти диск"
+  echo "   c) Подсчитать диски и дорожки в каталоге"
+  if [ "$cdcatnum" != "" ]; then
+    echo "   l) распечатать дорожки $cdtitle"
+    echo "   r) удалить $cdtitle"
+    echo "   u) изменить названия треков для $cdtitle"
+  fi
+  echo "   q) выход"
+  echo
+  echo -e "введите нужную букву и нажмите Enter \c"
+  read menu_choice # тут считывается выбор меню
+  return	# отсюда уходим обратно на стр.340 в case
+}
+
+
+insert_title() {
+  echo $* >> $title_file
+  return
+}
+
+insert_track() {
+  echo $* >> $tracks_file
+  return
+}
+
+add_record_tracks() {
+  echo "введите название трека и нажмите Enter. Ввод название трека обязателен или нажать q"
+  echo "Для завершения ввода треков нажмите q"
+  cdtrack=1
+  cdttitle=""
+  while [ "$cdttitle" != "q" ]
+  do
+      echo -e "трэк $cdtrack, вводите название:  \c"
+      read tmp
+      cdttitle=${tmp%%,*}
+      if [ "$tmp" != "$cdttitle" ]; then
+        echo "Ввод запятых запрещен, замените их другими знаками." # запятые запрещены во вводе названий
+        continue # форсированный переход к следующей итерации цикла
+      fi
+      if [ -n "$cdttitle" ] ; then
+        if [ "$cdttitle" != "q" ]; then # проверка не нажали ли q - выход
+          insert_track $cdcatnum,$cdtrack,$cdttitle
+        fi
+      else
+        cdtrack=$((cdtrack-1)) # если название трека не введено и не нажата q -> переход заново ввод названия.
+        echo "Введите название трека или нажмите q. Текущий номер cdtrack= $cdtrack" # сюда идем когда cdttitle #пустая, те пробелом ввели пустое место, те если ввели пустое имя - опять возвращает к этому же треку отнимая 1, #а не переходит к следующему, плюсуя 1.
+        sleep 2
+      fi
+    cdtrack=$((cdtrack+1)) # увеличиваем номер ррека на 1 и снова в цикл для ввода информации для след. трека.
+  done
+}
+
+# The add_records function allows entry of the main CD information for a new CD.
+
+add_records() {
+  # Prompt for the initial information
+
+  echo -e "Введите название группы \c"
+  read tmp
+  cdcatnum=${tmp%%,*}
+
+  echo -e "Введите название диска \c"
+  read tmp
+  cdtitle=${tmp%%,*}
+
+  echo -e "Введите музыкальный стиль  \c"
+  read tmp
+  cdtype=${tmp%%,*}
+
+  echo -e "Введите имя исполнителя или композитора \c"
+  read tmp
+  cdac=${tmp%%,*}
+
+  # Check that they want to enter the information
+
+  echo Сводная информация для ввода данных:
+  echo "$cdcatnum $cdtitle $cdtype $cdac"
+
+  # If confirmed then append it to the titles file
+
+  if get_confirm ; then
+    insert_title $cdcatnum,$cdtitle,$cdtype,$cdac
+    add_record_tracks
+  else
+    remove_records
+  fi
+
+  return
+}
+
+find_cd() {
+  if [ "$1" = "n" ]; then
+    asklist=n
+  else
+    asklist=y
+  fi
+  cdcatnum="" # ВНИМАНИЕ! Уникальный ключ cdcatnum обнуляется в этой функции. Те сбрасывается привязка к конк. диску (каталогу)
+  echo -e "Введите строку для поиска диска или нажмите q! Или возврат в меню! \c "
+  read searchstr
+  if [ "$searchstr" = "" ]; then
+    return 0 #возврат на стр. 349
+  fi
+
+  grep "$searchstr" $title_file > $temp_file
+
+  set $(wc -l $temp_file)
+  linesfound=$1 # тут $1 кол-во строк в выборке. Одна строка - 1 совпадение. $2 - имя врем. файла $temp_file
+  echo " linesfound= $linesfound, cdcatnum=$cdcatnum "
+    sleep 1
+  case "$linesfound" in
+
+  0)    echo "Извините, ничего не найдено. Попробуйте снова"
+        get_return
+        return 0
+        ;;
+  1)		IFS=","
+  			read cdcatnum cdtitle cdtype cdac < $temp_file
+				IFS=" "
+
+				if [ -z "$cdcatnum" ]; then
+					echo "Невозможно получить данные из $temp_file"
+					get_return
+					return 0
+				fi
+				echo
+				echo Catalog number: $cdcatnum
+				echo Title: $cdtitle
+				echo Type: $cdtype
+				echo Artist/Composer: $cdac
+				echo
+				get_return
+
+				if [ "$asklist" = "y" ]; then
+					echo -e "Хотите просмотреть треки для этого диска? \c"
+						read x
+					if [ "$x" = "y" ]; then
+						echo
+						list_tracks #стр. 286
+						echo
+					fi
+				fi
+				echo "Возврат в основное меню."
+				sleep 2
+  			;;
+
+  *)
+				echo "Уникального совпадения не найдено"
+						  echo "Найдено следующее: "
+						  cat $temp_file
+						  get_return
+						  return 0
+				esac
+				return 1
+}
+
+
+update_cd() {
+  if [ -z "$cdcatnum" ]; then
+    echo "Выберете сначала название диска"
+    find_cd n
+  fi
+  if [ -n "$cdcatnum" ]; then
+    echo "Текущий трек :-"
+    list_tracks
+    echo
+    echo "Можете ввести новое имя трека для  $cdtitle"
+    get_confirm && {
+      grep -v "^${cdcatnum}," $tracks_file > $temp_file
+      mv $temp_file $tracks_file
+      echo
+      add_record_tracks
+    }
+  fi
+  return
+}
+
+# count_cds gives us a quick count of the contents of our database.
+
+count_cds() {
+  set $(wc -l $title_file)
+  num_titles=$1
+  set $(wc -l $tracks_file)
+  num_tracks=$1
+  echo найдено $num_titles CDs, общее чсило треков $num_tracks
+  get_return
+  return
+}
+
+remove_records() {
+  if [ -z "$cdcatnum" ]; then
+    echo You must select a CD first
+    find_cd n
+  fi
+  if [ -n "$cdcatnum" ]; then
+    echo "Информация по удалению данных из $cdtitle"
+    get_confirm && {
+      grep -v "^${cdcatnum}," $title_file > $temp_file
+      mv $temp_file $title_file
+      grep -v "^${cdcatnum}," $tracks_file > $temp_file
+      mv $temp_file $tracks_file
+      cdcatnum=""
+      echo Entry removed
+    }
+    get_return
+  fi
+  return
+}
+
+list_tracks() { # дб значение $cdcatnum(название диска) - по нему и ищем треки
+  if [ "$cdcatnum" = "" ]; then
+    echo Не выбрано название диска!
+    return
+  else
+    grep "^${cdcatnum}," $tracks_file > $temp_file
+    num_tracks=$(wc -l $temp_file)
+    if [ "$num_tracks" = "0" ]; then
+      echo no tracks found for $cdtitle # {} объединяеют команды и выполняют их в текущей shell
+    else {
+      echo
+      echo "$cdtitle :-"
+      echo
+      cut -f 2- -d , $temp_file
+      echo
+    } | ${PAGER:-more}
+    fi
+  fi
+  get_return
+  return
+}
+
+#####################################################################################
+
+rm -f $temp_file
+if [ ! -f $title_file ]; then
+  touch $title_file
+fi
+if [ ! -f $tracks_file ]; then
+  touch $tracks_file
+fi
+
+# теперь приложение чистое
+
+clear
+echo
+echo
+echo "Менеджер коллекции дисков"
+sleep 2
+
+quit=n
+while [ "$quit" != "y" ];
+do
+  set_menu_choice # функция возвращает переменную $menu_choice с выбором пункта меню
+  case "$menu_choice" in # в зависимости от выбора вызывается нужная функция
+    a) add_records;;
+    r) remove_records;;
+    f) find_cd y;;
+    u) update_cd;;
+    c) count_cds;;
+    l) list_tracks;;
+    b)
+      echo
+      more $title_file
+      echo
+      get_return;;
+    q | Q ) quit=y;;
+    *) echo "Извините, ввод данных не распознан. Повторите попытку.";;
+  esac
+done
+
+# сделать приборку и выйти
+
+rm -f $temp_file
+echo "Завершение сеанса. Приходите еще."
+sleep 2
+clear
+exit 0
